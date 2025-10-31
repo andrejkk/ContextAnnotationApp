@@ -1,10 +1,19 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Play, Clock, Calendar } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Play, Clock, Calendar } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+
+interface Event {
+  id: string;
+  timestamp: string;
+  offset_ms: number;
+  event_type: {
+    label: string;
+  };
+}
 
 interface Recording {
   id: string;
@@ -13,6 +22,7 @@ interface Recording {
   duration_seconds: number | null;
   status: string;
   video_url: string | null;
+  events?: Event[];
 }
 
 interface MonitorScreenProps {
@@ -22,7 +32,9 @@ interface MonitorScreenProps {
 export const MonitorScreen = ({ onBack }: MonitorScreenProps) => {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
+  const [selectedRecording, setSelectedRecording] = useState<Recording | null>(
+    null
+  );
 
   useEffect(() => {
     loadRecordings();
@@ -30,20 +42,47 @@ export const MonitorScreen = ({ onBack }: MonitorScreenProps) => {
 
   const loadRecordings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('recordings')
-        .select('*')
-        .order('start_time', { ascending: false });
+      const { data: recordingsData, error: recordingsError } = await supabase
+        .from("recordings")
+        .select("*")
+        .order("start_time", { ascending: false });
 
-      if (error) throw error;
+      if (recordingsError) throw recordingsError;
 
-      setRecordings(data || []);
+      // Fetch events for all recordings
+      const recordingsWithEvents = await Promise.all(
+        (recordingsData || []).map(async (recording) => {
+          const { data: eventsData, error: eventsError } = await supabase
+            .from("events")
+            .select(
+              `
+              id,
+              timestamp,
+              offset_ms,
+              event_type:event_types (
+                label
+              )
+            `
+            )
+            .eq("recording_id", recording.id)
+            .order("offset_ms", { ascending: true });
+
+          if (eventsError) {
+            console.error("Error loading events:", eventsError);
+            return { ...recording, events: [] };
+          }
+
+          return { ...recording, events: eventsData || [] };
+        })
+      );
+
+      setRecordings(recordingsWithEvents);
     } catch (error) {
-      console.error('Error loading recordings:', error);
+      console.error("Error loading recordings:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to load recordings',
-        variant: 'destructive'
+        title: "Error",
+        description: "Failed to load recordings",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -51,14 +90,24 @@ export const MonitorScreen = ({ onBack }: MonitorScreenProps) => {
   };
 
   const formatDuration = (seconds: number | null) => {
-    if (!seconds) return 'N/A';
+    if (!seconds) return "N/A";
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
+  };
+
+  const formatTimestamp = (offsetMs: number) => {
+    const totalSeconds = Math.floor(offsetMs / 1000);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    const ms = offsetMs % 1000;
+    return `${mins}:${secs.toString().padStart(2, "0")}.${Math.floor(
+      ms / 100
+    )}`;
   };
 
   return (
@@ -105,11 +154,38 @@ export const MonitorScreen = ({ onBack }: MonitorScreenProps) => {
                       </span>
                     </div>
                   </div>
-                  <Badge variant={recording.status === 'completed' ? 'default' : 'secondary'}>
+                  <Badge
+                    variant={
+                      recording.status === "completed" ? "default" : "secondary"
+                    }
+                  >
                     {recording.status}
                   </Badge>
                 </div>
-                
+
+                {recording.events && recording.events.length > 0 && (
+                  <div className="mt-3 pt-3 border-t">
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-2">
+                      Events
+                    </h4>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {recording.events.map((event) => (
+                        <div
+                          key={event.id}
+                          className="flex items-center justify-between text-xs"
+                        >
+                          <span className="text-muted-foreground">
+                            {event.event_type?.label || "Unknown Event"}
+                          </span>
+                          <span className="font-mono text-muted-foreground">
+                            {formatTimestamp(event.offset_ms)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {recording.video_url && (
                   <Button
                     variant="outline"
@@ -133,7 +209,11 @@ export const MonitorScreen = ({ onBack }: MonitorScreenProps) => {
           <Card className="w-full max-w-4xl p-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Recording Playback</h3>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedRecording(null)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedRecording(null)}
+              >
                 Close
               </Button>
             </div>
