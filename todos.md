@@ -1,0 +1,4 @@
+# TODOs
+
+- Vpis dogodkova za anotacije iz .xlsx v bazo
+- Kopiranje posnetkov v lokalno PC okolje: video, signali, označeni dogodki. Vse s časovnimi žigi - Skripte ad 2. Potrebujemo že sedaj, to je namreč edina realna preverba, za zadeva deluje.
