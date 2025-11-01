@@ -9,9 +9,11 @@ import {
   Calendar,
   Trash2,
   Download,
+  FileSpreadsheet,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
 
 interface Event {
   id: string;
@@ -139,6 +141,71 @@ export const MonitorScreen = ({ onBack }: MonitorScreenProps) => {
       toast({
         title: "Error",
         description: "Failed to download video",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadEvents = async (recordingId: string) => {
+    try {
+      const { data: eventsData, error } = await supabase
+        .from("events")
+        .select(
+          `
+          id,
+          recording_id,
+          event_type_id,
+          timestamp,
+          offset_ms,
+          metadata,
+          created_at,
+          event_type:event_types (
+            label
+          )
+        `
+        )
+        .eq("recording_id", recordingId)
+        .order("offset_ms", { ascending: true });
+
+      if (error) throw error;
+
+      if (!eventsData || eventsData.length === 0) {
+        toast({
+          title: "No events",
+          description: "This recording has no events to export",
+        });
+        return;
+      }
+
+      // Transform data for Excel export
+      const exportData = eventsData.map((event) => ({
+        id: event.id,
+        recording_id: event.recording_id,
+        event_type_id: event.event_type_id,
+        event_type_label: event.event_type?.label || "",
+        timestamp: event.timestamp,
+        offset_ms: event.offset_ms,
+        metadata: JSON.stringify(event.metadata),
+        created_at: event.created_at,
+      }));
+
+      // Create worksheet and workbook
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Events");
+
+      // Download file
+      XLSX.writeFile(workbook, `events-${recordingId}.xlsx`);
+
+      toast({
+        title: "Download started",
+        description: "Events are being saved to your device",
+      });
+    } catch (error) {
+      console.error("Error downloading events:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download events",
         variant: "destructive",
       });
     }
@@ -289,6 +356,15 @@ export const MonitorScreen = ({ onBack }: MonitorScreenProps) => {
                         <Download className="h-4 w-4" />
                       </Button>
                     </>
+                  )}
+                  {recording.events && recording.events.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownloadEvents(recording.id)}
+                    >
+                      <FileSpreadsheet className="h-4 w-4" />
+                    </Button>
                   )}
                   <Button
                     variant="destructive"
