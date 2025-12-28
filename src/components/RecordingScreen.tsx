@@ -267,24 +267,6 @@ export const RecordingScreen = ({ onBack }: RecordingScreenProps) => {
             Gyroscope
           </Badge>
         )}
-        {sensorStatus.sensorStatus.geolocation && (
-          <Badge variant="secondary" className="flex items-center gap-1">
-            <Navigation className="h-3 w-3" />
-            Geolocation
-          </Badge>
-        )}
-        {sensorStatus.sensorStatus.magnetometer && (
-          <Badge variant="secondary" className="flex items-center gap-1">
-            <Compass className="h-3 w-3" />
-            Magnetometer
-          </Badge>
-        )}
-        {sensorStatus.sensorStatus.ambient_light && (
-          <Badge variant="secondary" className="flex items-center gap-1">
-            <Sun className="h-3 w-3" />
-            Ambient Light
-          </Badge>
-        )}
         {isRecording && (
           <Badge variant="destructive" className="animate-pulse">
             <div className="h-2 w-2 rounded-full bg-recording-foreground mr-2" />

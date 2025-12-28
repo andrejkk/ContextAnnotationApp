@@ -3,13 +3,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 interface SensorStatus {
   accelerometer: boolean;
   gyroscope: boolean;
-  geolocation: boolean;
-  orientation: boolean;
-  magnetometer: boolean;
   linear_acceleration: boolean;
-  gravity: boolean;
   relative_orientation: boolean;
-  ambient_light: boolean;
 }
 
 export const useSensors = (
@@ -19,37 +14,23 @@ export const useSensors = (
   const [sensorStatus, setSensorStatus] = useState<SensorStatus>({
     accelerometer: false,
     gyroscope: false,
-    geolocation: false,
-    orientation: false,
-    magnetometer: false,
     linear_acceleration: false,
-    gravity: false,
     relative_orientation: false,
-    ambient_light: false,
   });
 
   const sensorsRef = useRef<{
     accelerometer?: any;
     gyroscope?: any;
-    magnetometer?: any;
     linear_acceleration?: any;
-    gravity?: any;
     relative_orientation?: any;
-    ambient_light?: any;
-    geolocationWatchId?: number;
   }>({});
 
   const checkSensorSupport = useCallback(async () => {
     const status: SensorStatus = {
       accelerometer: false,
       gyroscope: false,
-      geolocation: false,
-      orientation: false,
-      magnetometer: false,
       linear_acceleration: false,
-      gravity: false,
       relative_orientation: false,
-      ambient_light: false,
     };
 
     // Check accelerometer
@@ -74,17 +55,6 @@ export const useSensors = (
       }
     }
 
-    // Check magnetometer
-    if ("Magnetometer" in window) {
-      try {
-        const mag = new (window as any).Magnetometer({ frequency: 10 });
-        status.magnetometer = true;
-        mag.stop();
-      } catch (e) {
-        console.log("Magnetometer not available:", e);
-      }
-    }
-
     // Check linear acceleration
     if ("LinearAccelerationSensor" in window) {
       try {
@@ -95,17 +65,6 @@ export const useSensors = (
         linear.stop();
       } catch (e) {
         console.log("LinearAccelerationSensor not available:", e);
-      }
-    }
-
-    // Check gravity
-    if ("GravitySensor" in window) {
-      try {
-        const grav = new (window as any).GravitySensor({ frequency: 10 });
-        status.gravity = true;
-        grav.stop();
-      } catch (e) {
-        console.log("GravitySensor not available:", e);
       }
     }
 
@@ -120,27 +79,6 @@ export const useSensors = (
       } catch (e) {
         console.log("RelativeOrientationSensor not available:", e);
       }
-    }
-
-    // Check ambient light
-    if ("AmbientLightSensor" in window) {
-      try {
-        const light = new (window as any).AmbientLightSensor({ frequency: 1 });
-        status.ambient_light = true;
-        light.stop();
-      } catch (e) {
-        console.log("AmbientLightSensor not available:", e);
-      }
-    }
-
-    // Check geolocation
-    if ("geolocation" in navigator) {
-      status.geolocation = true;
-    }
-
-    // Check orientation
-    if ("DeviceOrientationEvent" in window) {
-      status.orientation = true;
     }
 
     setSensorStatus(status);
@@ -159,16 +97,10 @@ export const useSensors = (
     console.log("stopping sensors");
     if (currentSensors.accelerometer) currentSensors.accelerometer.stop();
     if (currentSensors.gyroscope) currentSensors.gyroscope.stop();
-    if (currentSensors.magnetometer) currentSensors.magnetometer.stop();
     if (currentSensors.linear_acceleration)
       currentSensors.linear_acceleration.stop();
-    if (currentSensors.gravity) currentSensors.gravity.stop();
     if (currentSensors.relative_orientation)
       currentSensors.relative_orientation.stop();
-    if (currentSensors.ambient_light) currentSensors.ambient_light.stop();
-    if (currentSensors.geolocationWatchId !== undefined) {
-      navigator.geolocation.clearWatch(currentSensors.geolocationWatchId);
-    }
     sensorsRef.current = {};
   }, []);
 
@@ -216,24 +148,6 @@ export const useSensors = (
       }
     }
 
-    // Start magnetometer
-    if (sensorStatus.magnetometer && "Magnetometer" in window) {
-      try {
-        const mag = new (window as any).Magnetometer({ frequency: 10 });
-        mag.addEventListener("reading", () => {
-          onSensorDataRef.current("magnetometer", {
-            x: mag.x,
-            y: mag.y,
-            z: mag.z,
-          });
-        });
-        mag.start();
-        newSensors.magnetometer = mag;
-      } catch (e) {
-        console.error("Error starting magnetometer:", e);
-      }
-    }
-
     // Start linear acceleration
     if (
       sensorStatus.linear_acceleration &&
@@ -254,24 +168,6 @@ export const useSensors = (
         newSensors.linear_acceleration = linear;
       } catch (e) {
         console.error("Error starting linear acceleration:", e);
-      }
-    }
-
-    // Start gravity
-    if (sensorStatus.gravity && "GravitySensor" in window) {
-      try {
-        const grav = new (window as any).GravitySensor({ frequency: 10 });
-        grav.addEventListener("reading", () => {
-          onSensorDataRef.current("gravity", {
-            x: grav.x,
-            y: grav.y,
-            z: grav.z,
-          });
-        });
-        grav.start();
-        newSensors.gravity = grav;
-      } catch (e) {
-        console.error("Error starting gravity:", e);
       }
     }
 
@@ -296,60 +192,14 @@ export const useSensors = (
       }
     }
 
-    // Start ambient light
-    if (sensorStatus.ambient_light && "AmbientLightSensor" in window) {
-      try {
-        const light = new (window as any).AmbientLightSensor({ frequency: 1 });
-        light.addEventListener("reading", () => {
-          onSensorDataRef.current("ambient_light", {
-            illuminance: light.illuminance,
-          });
-        });
-        light.start();
-        newSensors.ambient_light = light;
-      } catch (e) {
-        console.error("Error starting ambient light:", e);
-      }
-    }
-
-    // Start geolocation
-    if (sensorStatus.geolocation) {
-      const watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          onSensorDataRef.current("geolocation", {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            altitude: position.coords.altitude,
-            heading: position.coords.heading,
-            speed: position.coords.speed,
-          });
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-        },
-        {
-          enableHighAccuracy: true,
-          maximumAge: 1000,
-        }
-      );
-      newSensors.geolocationWatchId = watchId;
-    }
-
     sensorsRef.current = newSensors;
 
     return () => {
       if (newSensors.accelerometer) newSensors.accelerometer.stop();
       if (newSensors.gyroscope) newSensors.gyroscope.stop();
-      if (newSensors.magnetometer) newSensors.magnetometer.stop();
       if (newSensors.linear_acceleration) newSensors.linear_acceleration.stop();
-      if (newSensors.gravity) newSensors.gravity.stop();
       if (newSensors.relative_orientation)
         newSensors.relative_orientation.stop();
-      if (newSensors.ambient_light) newSensors.ambient_light.stop();
-      if (newSensors.geolocationWatchId !== undefined) {
-        navigator.geolocation.clearWatch(newSensors.geolocationWatchId);
-      }
     };
   }, [isRecording, sensorStatus, stopAllSensors]);
 
