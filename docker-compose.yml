@@ -13,6 +13,7 @@ services:
       VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
     ports:
       - "3000:443"   # external:internal → HTTPS served on 3000 externally
+      - "3000:3000"  # HTTP listener to catch plain HTTP and redirect
     volumes:
       - /home/docker/certs:/certs:ro
     restart: unless-stopped
