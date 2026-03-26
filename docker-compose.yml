@@ -12,7 +12,7 @@ services:
       VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
     ports:
-      - "3000:443"   # external:internal → HTTPS served on 3000 externally
+      - "${HOST_PORT:-3000}:443"   # external:internal → HTTPS served on ${HOST_PORT} - default 3000 - externally
     volumes:
       - /home/docker/certs:/certs:ro
     restart: unless-stopped
