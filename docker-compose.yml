@@ -16,6 +16,18 @@ services:
     volumes:
       - /home/docker/certs:/certs:ro
     restart: unless-stopped
+    
+# OPTIONAL network – only used if env var is provided
+    networks:
+      - ${SUPABASE_NETWORK:-default}
+
+# OPTIONAL definition
+networks:
+  supabase_default:
+    external: true
+  default:
+    driver: bridge
+
 # ===================================================================
 # version: "3.9"
 
