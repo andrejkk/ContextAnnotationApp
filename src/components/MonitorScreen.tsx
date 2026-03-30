@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -73,7 +73,6 @@ export const MonitorScreen = ({ onBack }: MonitorScreenProps) => {
   const hasVideo = (recording: Recording) => {
     return recording.video_url || hasChunkedVideo(recording);
   };
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   const fetchChunkedVideo = async (
     recording: Recording
@@ -524,33 +523,13 @@ export const MonitorScreen = ({ onBack }: MonitorScreenProps) => {
                   Close
                 </Button>
               </div>
-
               <video
-                ref={videoRef}
                 src={
-                  selectedRecording.blobUrl ??
-                  selectedRecording.video_url ??
-                  ""
+                  selectedRecording.blobUrl || selectedRecording.video_url || ""
                 }
                 controls
-                preload="metadata"
                 className="w-full aspect-video bg-muted"
-                onLoadedMetadata={(e) => {
-                  console.log("Metadata loaded, duration:", e.currentTarget.duration);
-
-                  // 👉 Critical fix for WebM / Supabase Storage:
-                  // forces Chrome/Firefox to read duration and full seekable range.
-                  try {
-                    e.currentTarget.currentTime = 0.000001;
-                  } catch (err) {
-                    console.warn("Seek hack failed:", err);
-                  }
-                }}
-                onDurationChange={(e) => {
-                  console.log("Duration updated:", e.currentTarget.duration);
-                }}
               />
-
             </Card>
           </div>
         )}
