@@ -523,32 +523,12 @@ export const MonitorScreen = ({ onBack }: MonitorScreenProps) => {
                   Close
                 </Button>
               </div>
-              // videoRef must be defined near top of component:
-              // const videoRef = useRef<HTMLVideoElement>(null);
-
               <video
-                ref={videoRef}
                 src={
-                  selectedRecording.blobUrl ??
-                  selectedRecording.video_url ??
-                  ""
+                  selectedRecording.blobUrl || selectedRecording.video_url || ""
                 }
                 controls
-                preload="metadata"
                 className="w-full aspect-video bg-muted"
-                onLoadedMetadata={(e) => {
-                  console.log("Metadata loaded. Duration:", e.currentTarget.duration);
-
-                  // Force Chrome/Firefox to compute duration + seekable range correctly
-                  try {
-                    e.currentTarget.currentTime = 0.000001;
-                  } catch (err) {
-                    console.warn("Seek hack failed:", err);
-                  }
-                }}
-                onDurationChange={(e) => {
-                  console.log("Duration updated:", e.currentTarget.duration);
-                }}
               />
             </Card>
           </div>
