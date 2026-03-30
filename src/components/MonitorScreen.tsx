@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef} from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -73,6 +73,7 @@ export const MonitorScreen = ({ onBack }: MonitorScreenProps) => {
   const hasVideo = (recording: Recording) => {
     return recording.video_url || hasChunkedVideo(recording);
   };
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const fetchChunkedVideo = async (
     recording: Recording
@@ -523,8 +524,6 @@ export const MonitorScreen = ({ onBack }: MonitorScreenProps) => {
                   Close
                 </Button>
               </div>
-              // videoRef must be defined near top of component:
-              // const videoRef = useRef<HTMLVideoElement>(null);
 
               <video
                 ref={videoRef}
@@ -537,9 +536,10 @@ export const MonitorScreen = ({ onBack }: MonitorScreenProps) => {
                 preload="metadata"
                 className="w-full aspect-video bg-muted"
                 onLoadedMetadata={(e) => {
-                  console.log("Metadata loaded. Duration:", e.currentTarget.duration);
+                  console.log("Metadata loaded, duration:", e.currentTarget.duration);
 
-                  // Force Chrome/Firefox to compute duration + seekable range correctly
+                  // 👉 Critical fix for WebM / Supabase Storage:
+                  // forces Chrome/Firefox to read duration and full seekable range.
                   try {
                     e.currentTarget.currentTime = 0.000001;
                   } catch (err) {
@@ -550,6 +550,7 @@ export const MonitorScreen = ({ onBack }: MonitorScreenProps) => {
                   console.log("Duration updated:", e.currentTarget.duration);
                 }}
               />
+
             </Card>
           </div>
         )}
